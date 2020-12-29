@@ -1,0 +1,39 @@
+server:
+    port: 7070
+    servlet:
+        encoding:
+            charset: UTF-8
+            enabled: true
+            force: true
+ 
+#db config
+spring:
+    datasource:
+        hikari:
+            jdbc-url: jdbc:oracle:thin:@localhost:1521/orcl
+            pool-name: hikari-cp
+            maximum-pool-size: 30
+            minimum-idle: 2
+            driver-class-name: oracle.jdbc.OracleDriver
+            username: c##oracle
+            password: oracle
+            connection-test-query: SELECT 1
+    
+    thymeleaf:
+        cache: false
+        enabled: true
+        encoding: UTF-8
+        prefix: classpath:/templates/html/
+        suffix: .html
+        check-template-location: true
+        mode: LEGACYHTML5
+
+    devtools:
+        livereload:
+            enabled: true
+        restart:
+            enabled: false
+
+mybatis:
+    configuration:
+        map-underscore-to-camel-case: true
