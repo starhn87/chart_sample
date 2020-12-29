@@ -15,9 +15,8 @@ spring:
             maximum-pool-size: 30
             minimum-idle: 2
             driver-class-name: oracle.jdbc.OracleDriver
-            username: c##oracle
+            username: oracle
             password: oracle
-            connection-test-query: SELECT 1
     
     thymeleaf:
         cache: false

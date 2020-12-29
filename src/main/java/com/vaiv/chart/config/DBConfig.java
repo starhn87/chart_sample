@@ -59,7 +59,7 @@ public class DBConfig {
         SqlSessionFactoryBean sqlFactoryBean = new SqlSessionFactoryBean();
 
         sqlFactoryBean.setDataSource(dataSource);
-        sqlFactoryBean.setMapperLocations(applicationContext.getResources("classpath:/mapper/**/**.xml"));
+        sqlFactoryBean.setMapperLocations(applicationContext.getResources("classpath:/mapper/**/*.xml"));
         return sqlFactoryBean.getObject();
     }
 
