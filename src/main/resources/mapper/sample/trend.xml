@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.vaiv.chart.rest.mapper.TrendMapper">
+
+    <resultMap id="CountBase" type="Count">
+        <id column="ID" property="id" />
+        <result column="BIG_REGION" property="bigRegion" />
+        <result column="WANTED_CNT" property="wantedCnt" />
+        <result column="SEEK_CNT" property="seekCnt" />
+        <result column="RATE" property="rate" />
+    </resultMap>
+
+    <select id="getCounts" resultMap="CountBase">
+        <![CDATA[ 
+            SELECT
+                '전국' AS BIG_REGION,
+                -1 AS RATE,
+                WANTED_CNT,
+                SEEK_CNT
+            FROM
+            (
+            SELECT
+                COUNT(ID) AS SEEK_CNT
+            FROM
+                TB_LAB210
+            WHERE
+                (((CAREER_1_YRCNT * 12 + CAREER_1_MMCNT >= 0 AND CAREER_1_YRCNT * 12 + CAREER_1_MMCNT <= 999) AND HOPE_JOBS_1_CD = '133300'))
+                OR (((CAREER_2_YRCNT * 12 + CAREER_2_MMCNT >= 0 AND CAREER_2_YRCNT * 12 + CAREER_2_MMCNT <= 999) AND HOPE_JOBS_2_CD = '133300'))
+                OR (((CAREER_3_YRCNT * 12 + CAREER_3_MMCNT >= 0 AND CAREER_3_YRCNT * 12 + CAREER_3_MMCNT <= 999) AND HOPE_JOBS_3_CD = '133300'))
+            )
+            JOIN
+            (
+            SELECT 
+                COUNT(ID) AS WANTED_CNT
+            FROM
+                TB_LAB310
+            WHERE
+                (CAREER_YRCNT * 12 + CAREER_MMCNT >= 0 AND CAREER_YRCNT * 12 + CAREER_MMCNT <= 999)
+                AND JOBS_CD = '133300'
+            )
+            ON 1 = 1
+
+            UNION ALL
+
+            SELECT
+                BIG_REGION,
+                RATE,
+                WANTED_CNT,
+                SEEK_CNT
+            FROM(
+                SELECT 
+                    WANTED.BIG_REGION,
+                    WANTED.WANTED_CNT,
+                    NVL(SEEK.SEEK_CNT, 0) AS SEEK_CNT,
+                    WANTED.WANTED_CNT / NVL(SEEK.SEEK_CNT, 0.1) AS RATE
+                FROM
+                (
+                    SELECT
+                        SUBSTR(REGION_CD, 0,2) AS BIG_REGION,
+                        COUNT(*) AS WANTED_CNT
+                    FROM TB_LAB310
+                    WHERE JOBS_CD = '133300'
+                    AND (CAREER_YRCNT * 12 + CAREER_MMCNT) >= 12 AND (CAREER_YRCNT * 12 + CAREER_MMCNT) <= 50
+                    GROUP BY SUBSTR(REGION_CD, 0,2)
+                ) WANTED LEFT OUTER JOIN
+                (
+                    SELECT
+                        BIG_REGION,
+                        SUM(CNT) AS SEEK_CNT
+                    FROM(
+                        SELECT
+                            SUBSTR(HOPE_REGION_1_CD, 0, 2) AS BIG_REGION,
+                            COUNT(*) AS CNT
+                        FROM TB_LAB210
+                        WHERE HOPE_JOBS_1_CD = '133300'
+                        AND (CAREER_1_YRCNT * 12 + CAREER_1_MMCNT) >= 12 AND (CAREER_1_YRCNT * 12 + CAREER_1_MMCNT) <= 50
+                        GROUP BY SUBSTR(HOPE_REGION_1_CD, 0, 2)
+                        UNION ALL
+                        SELECT
+                            SUBSTR(HOPE_REGION_2_CD, 0, 2) AS BIG_REGION,
+                            COUNT(*) AS CNT
+                        FROM TB_LAB210
+                        WHERE HOPE_JOBS_2_CD = '133300'
+                        AND (CAREER_2_YRCNT * 12 + CAREER_2_MMCNT) >= 12 AND (CAREER_2_YRCNT * 12 + CAREER_2_MMCNT) <= 50
+                        GROUP BY SUBSTR(HOPE_REGION_2_CD, 0, 2)
+                        UNION ALL
+                        SELECT
+                            SUBSTR(HOPE_REGION_3_CD, 0, 2) AS BIG_REGION,
+                            COUNT(*) AS CNT
+                        FROM TB_LAB210
+                        WHERE HOPE_JOBS_3_CD = '133300'
+                        AND (CAREER_3_YRCNT * 12 + CAREER_3_MMCNT) >= 12 AND (CAREER_3_YRCNT * 12 + CAREER_3_MMCNT) <= 50
+                        GROUP BY SUBSTR(HOPE_REGION_3_CD, 0, 2)
+                    )
+                    GROUP BY BIG_REGION
+                ) SEEK
+                ON WANTED.BIG_REGION = SEEK.BIG_REGION
+                ORDER BY RATE DESC
+            ) WHERE ROWNUM <= 5
+            
+            UNION ALL
+
+            SELECT
+                '특정 지역' AS BIG_REGION,
+                -1 AS RATE,
+                WANTED_CNT,
+                SEEK_CNT
+            FROM
+            (
+                SELECT 
+                COUNT(ID) AS WANTED_CNT
+                FROM
+                TB_LAB310
+                WHERE
+                    REGION_CD LIKE '11%'
+                    AND (CAREER_YRCNT * 12 + CAREER_MMCNT >= 0 AND CAREER_YRCNT * 12 + CAREER_MMCNT <= 999)
+                    AND JOBS_CD = '133300'
+            )
+            JOIN
+            (
+                SELECT
+                COUNT(ID) AS SEEK_CNT
+                FROM
+                TB_LAB210
+                WHERE
+                    (HOPE_REGION_1_CD LIKE '11%' OR HOPE_REGION_2_CD LIKE '11%' OR HOPE_REGION_3_CD LIKE '11%')
+                AND
+                    ((((CAREER_1_YRCNT * 12 + CAREER_1_MMCNT >= 0 AND CAREER_1_YRCNT * 12 + CAREER_1_MMCNT <= 999) AND HOPE_JOBS_1_CD = '133300'))
+                    OR (((CAREER_2_YRCNT * 12 + CAREER_2_MMCNT >= 0 AND CAREER_2_YRCNT * 12 + CAREER_2_MMCNT <= 999) AND HOPE_JOBS_2_CD = '133300'))
+                    OR (((CAREER_3_YRCNT * 12 + CAREER_3_MMCNT >= 0 AND CAREER_3_YRCNT * 12 + CAREER_3_MMCNT <= 999) AND HOPE_JOBS_3_CD = '133300')))
+            )
+            ON 1 = 1
+
+            UNION ALL
+
+            
+        ]]>
+    </select>
+
+    <select id="getTop5Count" resultMap="CountBase">
+        <![CDATA[
+            SELECT
+                BIG_REGION,
+                WANTED_CNT,
+                SEEK_CNT,
+                RATE
+            FROM(
+                SELECT 
+                    WANTED.BIG_REGION,
+                    WANTED.WANTED_CNT,
+                    NVL(SEEK.SEEK_CNT, 0) AS SEEK_CNT,
+                    WANTED.WANTED_CNT / NVL(SEEK.SEEK_CNT, 0.1) AS RATE
+                FROM
+                (
+                    SELECT
+                        SUBSTR(REGION_CD, 0,2) AS BIG_REGION,
+                        COUNT(*) AS WANTED_CNT
+                    FROM TB_LAB310
+                    WHERE JOBS_CD = '133300'
+                    AND (CAREER_YRCNT * 12 + CAREER_MMCNT) >= 12 AND (CAREER_YRCNT * 12 + CAREER_MMCNT) <= 50
+                    GROUP BY SUBSTR(REGION_CD, 0,2)
+                ) WANTED LEFT OUTER JOIN
+                (
+                    SELECT
+                        BIG_REGION,
+                        SUM(CNT) AS SEEK_CNT
+                    FROM(
+                        SELECT
+                            SUBSTR(HOPE_REGION_1_CD, 0, 2) AS BIG_REGION,
+                            COUNT(*) AS CNT
+                        FROM TB_LAB210
+                        WHERE HOPE_JOBS_1_CD = '133300'
+                        AND (CAREER_1_YRCNT * 12 + CAREER_1_MMCNT) >= 12 AND (CAREER_1_YRCNT * 12 + CAREER_1_MMCNT) <= 50
+                        GROUP BY SUBSTR(HOPE_REGION_1_CD, 0, 2)
+                        UNION ALL
+                        SELECT
+                            SUBSTR(HOPE_REGION_2_CD, 0, 2) AS BIG_REGION,
+                            COUNT(*) AS CNT
+                        FROM TB_LAB210
+                        WHERE HOPE_JOBS_2_CD = '133300'
+                        AND (CAREER_2_YRCNT * 12 + CAREER_2_MMCNT) >= 12 AND (CAREER_2_YRCNT * 12 + CAREER_2_MMCNT) <= 50
+                        GROUP BY SUBSTR(HOPE_REGION_2_CD, 0, 2)
+                        UNION ALL
+                        SELECT
+                            SUBSTR(HOPE_REGION_3_CD, 0, 2) AS BIG_REGION,
+                            COUNT(*) AS CNT
+                        FROM TB_LAB210
+                        WHERE HOPE_JOBS_3_CD = '133300'
+                        AND (CAREER_3_YRCNT * 12 + CAREER_3_MMCNT) >= 12 AND (CAREER_3_YRCNT * 12 + CAREER_3_MMCNT) <= 50
+                        GROUP BY SUBSTR(HOPE_REGION_3_CD, 0, 2)
+                    )
+                    GROUP BY BIG_REGION
+                ) SEEK
+                ON WANTED.BIG_REGION = SEEK.BIG_REGION
+                ORDER BY RATE DESC
+            ) WHERE ROWNUM <= 5
+        ]]>
+    </select>
+
+    <select id="getSpecificAreaCount" resultMap="CountBase">
+        <![CDATA[ 
+            SELECT
+                'SPECIFIC_AREA' AS BIG_REGION,
+                -1 AS RATE,
+                WANTED_CNT,
+                SEEK_CNT
+            FROM
+            (
+                SELECT 
+                COUNT(ID) AS WANTED_CNT
+                FROM
+                TB_LAB310
+                WHERE
+                    REGION_CD LIKE '11%'
+                    AND (CAREER_YRCNT * 12 + CAREER_MMCNT >= 0 AND CAREER_YRCNT * 12 + CAREER_MMCNT <= 999)
+                    AND JOBS_CD = '133300'
+            )
+            JOIN
+            (
+                SELECT
+                COUNT(ID) AS SEEK_CNT
+                FROM
+                TB_LAB210
+                WHERE
+                    (HOPE_REGION_1_CD LIKE '11%' OR HOPE_REGION_2_CD LIKE '11%' OR HOPE_REGION_3_CD LIKE '11%')
+                AND
+                    ((((CAREER_1_YRCNT * 12 + CAREER_1_MMCNT >= 0 AND CAREER_1_YRCNT * 12 + CAREER_1_MMCNT <= 999) AND HOPE_JOBS_1_CD = '133300'))
+                    OR (((CAREER_2_YRCNT * 12 + CAREER_2_MMCNT >= 0 AND CAREER_2_YRCNT * 12 + CAREER_2_MMCNT <= 999) AND HOPE_JOBS_2_CD = '133300'))
+                    OR (((CAREER_3_YRCNT * 12 + CAREER_3_MMCNT >= 0 AND CAREER_3_YRCNT * 12 + CAREER_3_MMCNT <= 999) AND HOPE_JOBS_3_CD = '133300')))
+            )
+            ON 1 = 1
+        ]]>
+    </select>
+    
+    <select id="getNationWideCount" resultMap="CountBase">
+        <![CDATA[ 
+            SELECT
+                'NATION_WIDE' AS BIG_REGION,
+                -1 AS RATE,
+                WANTED_CNT,
+                SEEK_CNT
+            FROM
+            (
+            SELECT
+                COUNT(ID) AS SEEK_CNT
+            FROM
+                TB_LAB210
+            WHERE
+                (((CAREER_1_YRCNT * 12 + CAREER_1_MMCNT >= 0 AND CAREER_1_YRCNT * 12 + CAREER_1_MMCNT <= 999) AND HOPE_JOBS_1_CD = '133300'))
+                OR (((CAREER_2_YRCNT * 12 + CAREER_2_MMCNT >= 0 AND CAREER_2_YRCNT * 12 + CAREER_2_MMCNT <= 999) AND HOPE_JOBS_2_CD = '133300'))
+                OR (((CAREER_3_YRCNT * 12 + CAREER_3_MMCNT >= 0 AND CAREER_3_YRCNT * 12 + CAREER_3_MMCNT <= 999) AND HOPE_JOBS_3_CD = '133300'))
+            )
+            JOIN
+            (
+            SELECT 
+                COUNT(ID) AS WANTED_CNT
+            FROM
+                TB_LAB310
+            WHERE
+                (CAREER_YRCNT * 12 + CAREER_MMCNT >= 0 AND CAREER_YRCNT * 12 + CAREER_MMCNT <= 999)
+                AND JOBS_CD = '133300'
+            )
+            ON 1 = 1
+        ]]>
+    </select>
+</mapper>

@@ -60,6 +60,7 @@ public class DBConfig {
 
         sqlFactoryBean.setDataSource(dataSource);
         sqlFactoryBean.setMapperLocations(applicationContext.getResources("classpath:/mapper/**/*.xml"));
+        sqlFactoryBean.setTypeAliasesPackage("com.vaiv.chart.rest.domain");
         return sqlFactoryBean.getObject();
     }
 
